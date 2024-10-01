@@ -5,7 +5,6 @@ import 'package:gemini_chat_bot/featuers/chat/data/models/message_model.dart';
 import 'package:gemini_chat_bot/featuers/chat/presentation/views/widgets/chat_bubble.dart';
 import 'package:gemini_chat_bot/featuers/chat/presentation/views/widgets/custom_text_field.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:intl/intl.dart';
 
 class ChatView extends StatefulWidget {
   const ChatView({
