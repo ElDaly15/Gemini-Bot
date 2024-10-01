@@ -24,17 +24,20 @@ class _UsersChatViewState extends State<ChatView> {
   static const apiKey = "AIzaSyDUxwdKG05EZnzHcx148VJZNWcS_ocDypA";
   final model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey);
   final List<Message> _messages = [];
+  bool _isTyping = false; // Add the typing state
 
   Future<void> sendMessage() async {
     setState(() {
       _messages
           .add(Message(isUser: true, message: text!, date: DateTime.now()));
+      _isTyping = true; // Gemini starts typing
     });
 
     final content = [Content.text(text!)];
     final response = await model.generateContent(content);
 
     setState(() {
+      _isTyping = false; // Gemini finished typing
       _messages.add(Message(
           isUser: false, message: response.text ?? "", date: DateTime.now()));
     });
@@ -54,16 +57,11 @@ class _UsersChatViewState extends State<ChatView> {
   String? text;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
-    super.dispose();
     textEditingController.dispose();
     _focusNode.dispose();
     _scrollController.dispose(); // Dispose of the scroll controller
+    super.dispose();
   }
 
   @override
@@ -90,11 +88,40 @@ class _UsersChatViewState extends State<ChatView> {
               child: ListView.builder(
                 reverse: false,
                 controller: _scrollController,
-                itemCount: _messages.length,
+                itemCount: _messages.length +
+                    1, // Adjust item count to add typing indicator
                 itemBuilder: (context, index) {
+                  if (index == _messages.length) {
+                    // Show typing indicator at the bottom
+                    return _isTyping
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                const SizedBox(
+                                  width: 10,
+                                ),
+                                Text(
+                                  "Gemini is typing...",
+                                  style: TextStyle(
+                                    fontStyle: FontStyle.italic,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const SizedBox
+                            .shrink(); // If not typing, show nothing
+                  }
                   return _messages[index].isUser
-                      ? ChatWidgetBubble(msg: _messages[index].message)
+                      ? ChatWidgetBubble(
+                          msg: _messages[index].message,
+                          date: _messages[index].date,
+                        )
                       : ChatWidgetBubblefriend(
+                          date: _messages[index].date,
                           msg: _messages[index].message,
                         );
                 },
@@ -109,7 +136,7 @@ class _UsersChatViewState extends State<ChatView> {
                     child: CustomTextField(
                       onFieldSubmitted: (msg) {},
                       focusNode: _focusNode,
-                      hintTitle: 'send a chat message',
+                      hintTitle: 'Send a chat message',
                       textEditingController: textEditingController,
                       obscure: false,
                       onSubmit: (value) {
@@ -127,6 +154,11 @@ class _UsersChatViewState extends State<ChatView> {
                             : () {
                                 textEditingController.clear();
                                 sendMessage();
+                                _scrollController.animateTo(
+                                  _scrollController.position.maxScrollExtent,
+                                  duration: const Duration(milliseconds: 500),
+                                  curve: Curves.easeOut,
+                                );
                                 _focusNode.unfocus();
                                 text = '';
                               },
