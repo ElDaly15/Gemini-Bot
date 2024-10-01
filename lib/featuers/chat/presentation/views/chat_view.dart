@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gemini_chat_bot/core/utils/styles.dart';
+import 'package:gemini_chat_bot/featuers/chat/data/models/message_model.dart';
 import 'package:gemini_chat_bot/featuers/chat/presentation/views/widgets/chat_bubble.dart';
 import 'package:gemini_chat_bot/featuers/chat/presentation/views/widgets/custom_text_field.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:intl/intl.dart';
 
 class ChatView extends StatefulWidget {
   const ChatView({
@@ -19,9 +22,37 @@ class _UsersChatViewState extends State<ChatView> {
   TextEditingController textEditingController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  String? text;
+  static const apiKey = "AIzaSyDUxwdKG05EZnzHcx148VJZNWcS_ocDypA";
+  final model = GenerativeModel(model: 'gemini-pro', apiKey: apiKey);
+  final List<Message> _messages = [];
 
-  // Dummy chat data for example
+  Future<void> sendMessage() async {
+    setState(() {
+      _messages
+          .add(Message(isUser: true, message: text!, date: DateTime.now()));
+    });
+
+    final content = [Content.text(text!)];
+    final response = await model.generateContent(content);
+
+    setState(() {
+      _messages.add(Message(
+          isUser: false, message: response.text ?? "", date: DateTime.now()));
+    });
+
+    // Scroll to the bottom of the page after the new message is added
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  String? text;
 
   @override
   void initState() {
@@ -33,6 +64,7 @@ class _UsersChatViewState extends State<ChatView> {
     super.dispose();
     textEditingController.dispose();
     _focusNode.dispose();
+    _scrollController.dispose(); // Dispose of the scroll controller
   }
 
   @override
@@ -57,13 +89,15 @@ class _UsersChatViewState extends State<ChatView> {
             ),
             Expanded(
               child: ListView.builder(
-                reverse: true,
+                reverse: false,
                 controller: _scrollController,
-                itemCount: 5,
+                itemCount: _messages.length,
                 itemBuilder: (context, index) {
-                  return index % 2 == 0
-                      ? ChatWidgetBubble(msg: 'Hi')
-                      : ChatWidgetBubblefriend(msg: 'hi');
+                  return _messages[index].isUser
+                      ? ChatWidgetBubble(msg: _messages[index].message)
+                      : ChatWidgetBubblefriend(
+                          msg: _messages[index].message,
+                        );
                 },
               ),
             ),
@@ -72,8 +106,7 @@ class _UsersChatViewState extends State<ChatView> {
               color: Colors.white,
               child: Row(
                 children: [
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.7,
+                  Flexible(
                     child: CustomTextField(
                       onFieldSubmitted: (msg) {},
                       focusNode: _focusNode,
@@ -87,22 +120,37 @@ class _UsersChatViewState extends State<ChatView> {
                       isPassword: false,
                     ),
                   ),
-                  IconButton(
-                    onPressed: text == null || text == ''
-                        ? null
-                        : () {
-                            textEditingController.clear();
-                            // Simulate message send, add new message
-                            setState(() {});
-                            _focusNode.unfocus();
-                            text = '';
-                          },
-                    icon: Icon(
-                      FontAwesomeIcons.paperPlane,
-                      color: text == null || text == ''
-                          ? Colors.grey
-                          : Color.fromARGB(255, 46, 4, 48),
-                    ),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: text == null || text == ''
+                            ? null
+                            : () {
+                                textEditingController.clear();
+                                sendMessage();
+                                _focusNode.unfocus();
+                                text = '';
+                              },
+                        icon: Icon(
+                          FontAwesomeIcons.paperPlane,
+                          color: text == null || text == ''
+                              ? Colors.grey
+                              : const Color.fromARGB(255, 46, 4, 48),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _messages.clear();
+                          });
+                        },
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Color.fromARGB(255, 46, 4, 48),
+                          size: 32,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -113,5 +161,3 @@ class _UsersChatViewState extends State<ChatView> {
     );
   }
 }
-
-// Dummy message model class

@@ -33,10 +33,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
   Widget build(BuildContext context) {
     return TextSelectionTheme(
       data: TextSelectionThemeData(
-        cursorColor: Color.fromARGB(255, 46, 4, 48), // Cursor color
-        selectionColor: Color.fromARGB(255, 46, 4, 48).withOpacity(0.54),
+        cursorColor: const Color.fromARGB(255, 46, 4, 48), // Cursor color
+        selectionColor: const Color.fromARGB(255, 46, 4, 48).withOpacity(0.54),
         // Selection highlight color
-        selectionHandleColor: Color.fromARGB(255, 46, 4, 48), // Handle color
+        selectionHandleColor:
+            const Color.fromARGB(255, 46, 4, 48), // Handle color
       ),
       child: TextFormField(
         focusNode: widget.focusNode,
